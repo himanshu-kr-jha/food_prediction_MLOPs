@@ -35,3 +35,7 @@ images:
 substitutions:
   _REGION: 'us-central1' # Change to your preferred region
   _BUCKET_NAME: 'gcp-learning-464207' # IMPORTANT: Change this!
+  
+# Add logging options to resolve the service account issue
+options:
+  logging: CLOUD_LOGGING_ONLY
