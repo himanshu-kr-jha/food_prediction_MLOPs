@@ -4,7 +4,4 @@ scikit-learn
 xgboost
 joblib
 gcsfs
-google-cloud-aiplatform
-google-cloud-run
-kfp
-PyYAML
+google-cloud-storage

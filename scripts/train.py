@@ -9,9 +9,10 @@ from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
 from sklearn.ensemble import GradientBoostingRegressor
+from google.cloud import storage
 
 def train_model(data_path, model_dir):
-    """Loads data, trains the model, and saves it."""
+    """Loads data, trains the model, and saves it to GCS."""
     df = pd.read_csv(data_path)
 
     # --- Preprocessing Logic ---
@@ -40,16 +41,27 @@ def train_model(data_path, model_dir):
     print("Training complete.")
 
     # --- Saving the Model ---
-    if not os.path.exists(model_dir):
-        os.makedirs(model_dir)
-    
-    model_filename = os.path.join(model_dir, 'model.joblib')
-    joblib.dump(final_model, model_filename)
-    print(f"Model saved to {model_filename}")
+    # 1. Save the model to a temporary local file in the container
+    local_model_path = '/tmp/model.joblib'
+    joblib.dump(final_model, local_model_path)
+    print(f"Model saved locally to {local_model_path}")
+
+    # 2. Upload the model to Google Cloud Storage
+    # Parse the GCS path to get bucket and blob name
+    bucket_name = model_dir.split('/')[2]
+    blob_name = '/'.join(model_dir.split('/')[3:]) + '/model.joblib'
+
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(blob_name)
+
+    blob.upload_from_filename(local_model_path)
+    print(f"Model uploaded to gs://{bucket_name}/{blob_name}")
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--data-path', type=str, required=True)
-    parser.add_argument('--model-dir', type=str, required=True)
+    parser.add_argument('--model-dir', type=str, required=True, help="GCS directory to save the model file.")
     args = parser.parse_args()
     train_model(args.data_path, args.model_dir)

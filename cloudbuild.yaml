@@ -9,33 +9,6 @@ steps:
     args: ['push', 'gcr.io/${PROJECT_ID}/food-delivery-trainer:latest']
     id: 'Push Image'
 
-  # 3. Compile the Vertex AI Pipeline
-  - name: 'python:3.9'
-    entrypoint: 'bash'
-    args:
-      - -c
-      - |
-        pip install -r requirements.txt
-        export GCP_PROJECT_ID=${PROJECT_ID}
-        export GCP_REGION=${_REGION}
-        export GCS_BUCKET_NAME=${_BUCKET_NAME}
-        python pipeline.py
-    id: 'Compile Pipeline'
-
-  # 4. Upload the compiled pipeline to Cloud Storage
-  - name: 'gcr.io/cloud-builders/gsutil'
-    args: ['cp', 'pipeline.json', 'gs://${_BUCKET_NAME}/pipelines/']
-    id: 'Upload Pipeline Spec'
-
 # Store the image in Container Registry
 images:
   - 'gcr.io/${PROJECT_ID}/food-delivery-trainer:latest'
-
-# Define substitutions for variables
-substitutions:
-  _REGION: 'us-central1' # Change to your preferred region
-  _BUCKET_NAME: 'gcp-learning-464207' # IMPORTANT: Change this!
-  
-# Add logging options to resolve the service account issue
-options:
-  logging: CLOUD_LOGGING_ONLY
