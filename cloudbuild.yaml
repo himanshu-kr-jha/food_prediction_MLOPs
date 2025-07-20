@@ -2,16 +2,27 @@ steps:
   # 1. Build the training container image
   - name: 'gcr.io/cloud-builders/docker'
     args: ['build', '-t', 'gcr.io/${PROJECT_ID}/food-delivery-trainer:latest', '.']
-    id: 'Build Image'
+    id: 'Build Trainer'
 
-  # 2. Push the container image to Container Registry
+  # 2. Build the prediction server container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/${PROJECT_ID}/food-delivery-predictor:latest', './prediction_server']
+    id: 'Build Predictor'
+
+  # 3. Push the training container
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/${PROJECT_ID}/food-delivery-trainer:latest']
-    id: 'Push Image'
+    id: 'Push Trainer'
 
-# Store the image in Container Registry
+  # 4. Push the prediction server container
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/${PROJECT_ID}/food-delivery-predictor:latest']
+    id: 'Push Predictor'
+
+# List both images
 images:
   - 'gcr.io/${PROJECT_ID}/food-delivery-trainer:latest'
+  - 'gcr.io/${PROJECT_ID}/food-delivery-predictor:latest'
 
 options:
   logging: CLOUD_LOGGING_ONLY
