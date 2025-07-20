@@ -2,9 +2,11 @@ import os
 import joblib
 import pandas as pd
 from flask import Flask, request, jsonify
+from flask_cors import CORS  # Import CORS
 from google.cloud import storage
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
 model = None
 local_model_path = "/tmp/model.joblib"
