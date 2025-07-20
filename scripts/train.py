@@ -1,13 +1,11 @@
 import argparse
 import os
 import pandas as pd
-import numpy as np
 import joblib
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import OneHotEncoder, RobustScaler
-from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder, RobustScaler
+from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import GradientBoostingRegressor
 from google.cloud import storage
 
@@ -32,7 +30,7 @@ def train_model(data_path, model_dir):
         ('preprocessor', preprocessor),
         ('regressor', GradientBoostingRegressor(
             subsample=1.0, n_estimators=150, min_samples_split=10, min_samples_leaf=1,
-            max_features='sqrt', max_depth=3, learning_rate=0.05, random_state=42, verbose=2
+            max_features='sqrt', max_depth=3, learning_rate=0.05, random_state=42
         ))
     ])
 
@@ -41,13 +39,10 @@ def train_model(data_path, model_dir):
     print("Training complete.")
 
     # --- Saving the Model ---
-    # 1. Save the model to a temporary local file in the container
     local_model_path = '/tmp/model.joblib'
     joblib.dump(final_model, local_model_path)
     print(f"Model saved locally to {local_model_path}")
 
-    # 2. Upload the model to Google Cloud Storage
-    # Parse the GCS path to get bucket and blob name
     bucket_name = model_dir.split('/')[2]
     blob_name = '/'.join(model_dir.split('/')[3:]) + '/model.joblib'
 
@@ -57,7 +52,6 @@ def train_model(data_path, model_dir):
 
     blob.upload_from_filename(local_model_path)
     print(f"Model uploaded to gs://{bucket_name}/{blob_name}")
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

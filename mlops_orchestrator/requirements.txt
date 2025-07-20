@@ -1,0 +1,4 @@
+google-cloud-run
+google-cloud-aiplatform
+google-cloud-storage
+PyYAML

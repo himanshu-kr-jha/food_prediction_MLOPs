@@ -13,6 +13,5 @@ steps:
 images:
   - 'gcr.io/${PROJECT_ID}/food-delivery-trainer:latest'
 
-# Add logging options to resolve the service account issue
 options:
   logging: CLOUD_LOGGING_ONLY
