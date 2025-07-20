@@ -6,55 +6,47 @@ from google.cloud import storage
 
 app = Flask(__name__)
 
-# --- Model Loading ---
-# Vertex AI sets an environment variable, AIP_STORAGE_URI,
-# which points to the GCS directory containing our model.
 model = None
-model_dir = os.environ.get("AIP_STORAGE_URI")
-if model_dir:
-    # The model file is inside this directory
-    model_path = os.path.join(model_dir.replace('gs://', '/gcs/'), "model.joblib")
-    try:
-        model = joblib.load(model_path)
-        print("Model loaded successfully.")
-    except Exception as e:
-        print(f"FATAL: Could not load model from {model_path}. Error: {e}")
-else:
-    print("FATAL: AIP_STORAGE_URI environment variable not set. Model not loaded.")
+local_model_path = "/tmp/model.joblib"
+
+try:
+    bucket_name = os.environ.get("GCS_BUCKET_NAME")
+    if not bucket_name:
+        raise ValueError("GCS_BUCKET_NAME environment variable not set.")
+
+    model_blob_path = "models/latest/model.joblib"
+    
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(model_blob_path)
+    
+    print(f"Downloading model from gs://{bucket_name}/{model_blob_path}...")
+    blob.download_to_filename(local_model_path)
+    print("Model downloaded successfully.")
+    
+    model = joblib.load(local_model_path)
+    print("Model loaded into memory.")
+
+except Exception as e:
+    print(f"FATAL: Could not load model. Predictions will fail. Error: {e}")
 
 
-# Vertex AI requires a health check route.
-@app.route(os.environ.get("AIP_HEALTH_ROUTE", "/health"), methods=["GET"])
+@app.route('/health', methods=['GET'])
 def health_check():
-    """Health check endpoint required by Vertex AI."""
     return "OK", 200
 
 
-# Vertex AI requires a prediction route.
-@app.route(os.environ.get("AIP_PREDICT_ROUTE", "/predict"), methods=["POST"])
+@app.route('/predict', methods=['POST'])
 def predict():
-    """Prediction endpoint required by Vertex AI."""
     if model is None:
         return "Model not loaded", 500
-
     try:
-        # The request body is a JSON object with an "instances" key.
-        request_json = request.get_json()
-        instances = request_json["instances"]
-        
-        # Convert the list of instances into a pandas DataFrame.
-        df = pd.DataFrame(instances)
-        
-        # Make predictions.
-        predictions = model.predict(df)
-        
-        # Format the response as required by Vertex AI.
-        return jsonify({"predictions": predictions.tolist()})
-
+        data = request.get_json()
+        df = pd.DataFrame([data])
+        prediction = model.predict(df)
+        return jsonify({"predicted_delivery_time_min": round(prediction[0], 2)})
     except Exception as e:
         return f"Error during prediction: {e}", 400
 
-
 if __name__ == "__main__":
-    # This is used for local testing.
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
